@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WHALE·PRINT — ARTLOBSTAR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Barlow+Condensed:wght@900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --red:#8B2E1E;--black:#0a0a0a;--white:#ffffff;--off:#f4f1ee;--gray:#c8c4bf;
+  --border:2.5px solid #0a0a0a;--font:'IBM Plex Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--white);color:var(--black);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+header{border-bottom:var(--border);display:grid;grid-template-columns:1fr auto;align-items:stretch}
+.header-left{padding:18px 24px;border-right:var(--border)}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:clamp(26px,5vw,46px);font-weight:900;letter-spacing:-1px;line-height:1;color:var(--black)}
+.logo span{color:var(--red)}
+.logo-sub{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--red);margin-top:4px}
+.header-right{display:flex;flex-direction:column;justify-content:center;padding:14px 22px;gap:7px;min-width:210px}
+.status-row{display:flex;align-items:center;gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:2px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gray);flex-shrink:0;transition:background .4s}
+.dot.live{background:var(--red);animation:pulse 1.2s ease-in-out infinite}
+.dot.ok{background:#2a9d2a}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+/* TICKER */
+.ticker-wrap{border-bottom:var(--border);background:var(--black);overflow:hidden;height:34px;display:flex;align-items:center}
+.ticker-label{background:var(--red);color:var(--white);font-size:9px;font-weight:700;letter-spacing:3px;padding:0 14px;height:100%;display:flex;align-items:center;flex-shrink:0;border-right:2px solid rgba(255,255,255,.2)}
+.ticker-inner{overflow:hidden;flex:1}
+.ticker-track{display:flex;animation:tickerAnim 35s linear infinite;white-space:nowrap}
+.ticker-item{color:var(--white);font-size:10px;padding:0 28px;letter-spacing:.5px;opacity:.8}
+.ticker-item .amt{color:#e87d6a;font-weight:700}
+@keyframes tickerAnim{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* LAYOUT */
+main{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 110px)}
+@media(max-width:860px){main{grid-template-columns:1fr}.sidebar{border-left:none;border-top:var(--border)}}
+
+/* CANVAS ZONE */
+.canvas-zone{padding:28px;display:flex;flex-direction:column;gap:18px;border-right:var(--border)}
+@media(max-width:860px){.canvas-zone{border-right:none;padding:18px 14px}}
+.zone-header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.section-label{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--red);margin-bottom:4px}
+.zone-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(20px,4vw,34px);font-weight:900;line-height:1}
+.tx-meta{font-size:9px;letter-spacing:1px;color:#666;text-align:right}
+
+/* TABS */
+.tabs{display:flex;border:var(--border);overflow:hidden}
+.tab{flex:1;padding:8px 6px;font-family:var(--font);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:var(--white);border:none;border-right:2px solid var(--black);cursor:pointer;transition:all .15s;color:var(--black)}
+.tab:last-child{border-right:none}
+.tab.active{background:var(--black);color:var(--white)}
+.tab:hover:not(.active){background:var(--off)}
+
+/* GALLERY */
+.gallery{display:grid;grid-template-columns:repeat(2,1fr);border:var(--border)}
+.g-item{border-right:var(--border);border-bottom:var(--border);position:relative;cursor:pointer;overflow:hidden;aspect-ratio:1}
+.g-item:nth-child(2n){border-right:none}
+.g-item:nth-child(3),.g-item:nth-child(4){border-bottom:none}
+.g-item canvas{display:block;width:100%;height:100%;transition:transform .2s}
+.g-item:hover canvas{transform:scale(1.03)}
+.g-badge{position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,.85);color:var(--white);font-size:9px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;letter-spacing:1px;transform:translateY(100%);transition:transform .2s}
+.g-item:hover .g-badge{transform:translateY(0)}
+.g-badge .gb-amt{color:#e87d6a;font-weight:700}
+.g-item.sel-art{outline:3px solid var(--red);outline-offset:-3px}
+
+/* SINGLE VIEW */
+.art-frame{border:var(--border);background:var(--off);position:relative;overflow:hidden;aspect-ratio:1;width:100%;cursor:crosshair;display:none}
+.art-frame.show{display:block}
+.art-frame canvas{display:block;width:100%;height:100%}
+.art-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--off);transition:opacity .5s}
+.art-overlay.hidden{opacity:0;pointer-events:none}
+.ov-icon{width:58px;height:58px;border:2.5px solid var(--black);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px}
+.ov-text{font-size:10px;letter-spacing:3px;text-transform:uppercase;text-align:center;max-width:220px;line-height:1.9}
+
+/* INFO STRIP */
+.info-strip{display:grid;grid-template-columns:repeat(4,1fr);border:var(--border);border-bottom:none}
+@media(max-width:500px){.info-strip{grid-template-columns:repeat(2,1fr)}}
+.ic{padding:9px 12px;border-bottom:var(--border);border-right:var(--border)}
+.ic:last-child{border-right:none}
+@media(max-width:500px){.ic:nth-child(2n){border-right:none}}
+.ic .k{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--red);margin-bottom:3px}
+.ic .v{font-size:11px;font-weight:700;word-break:break-all}
+
+/* STYLE CHIPS */
+.cfg-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:9px;letter-spacing:2px;text-transform:uppercase;border:1.5px solid var(--gray);padding:4px 10px;cursor:pointer;transition:all .15s;background:var(--white);font-family:var(--font);color:var(--black)}
+.chip.active,.chip:hover{border-color:var(--black);background:var(--black);color:var(--white)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;background:var(--black);color:var(--white);border:var(--border);padding:9px 18px;font-family:var(--font);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s,border-color .15s;text-decoration:none}
+.btn:hover{background:var(--red);border-color:var(--red)}
+.btn[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.out{background:transparent;color:var(--black)}
+.btn.out:hover{background:var(--black);color:var(--white)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+
+/* SIDEBAR */
+.sidebar{background:var(--white);display:flex;flex-direction:column}
+.sb{border-bottom:var(--border);padding:18px}
+.sb:last-child{border-bottom:none}
+.sb h3{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--red);margin-bottom:12px}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--black);border:var(--border)}
+.sc{background:var(--white);padding:10px}
+.sc .sk{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#777;margin-bottom:3px}
+.sc .sv{font-size:20px;font-weight:700;font-family:'Barlow Condensed',sans-serif;color:var(--black)}
+.sc .sv.red{color:var(--red)}
+
+/* TOKEN */
+.token-chip{display:flex;align-items:center;gap:10px;padding:10px;border:var(--border);background:var(--off);margin-bottom:10px}
+.token-icon{width:34px;height:34px;border:2px solid var(--black);border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--white);flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
+.td-name{font-size:12px;font-weight:700}
+.td-addr{font-size:8px;color:#888;word-break:break-all;margin-top:2px;letter-spacing:.3px}
+
+/* FEED */
+.feed{display:flex;flex-direction:column;max-height:280px;overflow-y:auto}
+.feed::-webkit-scrollbar{width:3px}
+.feed::-webkit-scrollbar-thumb{background:var(--black)}
+.feed-empty{font-size:10px;color:#999;letter-spacing:1px;padding:8px 0;line-height:1.8}
+.fi{padding:9px 0;border-bottom:1px solid var(--gray);cursor:pointer;transition:background .1s;padding-left:4px}
+.fi:hover{background:var(--off)}
+.fi.whale{border-left:3px solid var(--red);padding-left:10px}
+.fi.sel{background:var(--red);color:var(--white);border-left:none;padding-left:14px}
+.fi.sel .fi-sig{color:rgba(255,255,255,.55)}
+.fi.sel .fi-badge{background:var(--white);color:var(--red)}
+.fi-top{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px}
+.fi-hash{font-size:10px;font-weight:700}
+.fi-badge{font-size:8px;font-weight:700;letter-spacing:2px;background:var(--red);color:var(--white);padding:1px 6px;flex-shrink:0}
+.fi-sig{font-size:8px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* REFRESH */
+.refresh-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.ref-btn{background:none;border:var(--border);font-family:var(--font);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all .15s;color:var(--black)}
+.ref-btn:hover{background:var(--black);color:var(--white)}
+.ps{font-size:9px;color:#999;letter-spacing:1px}
+
+/* SPINNER */
+.spin{width:14px;height:14px;border:2px solid var(--gray);border-top-color:var(--red);border-radius:50%;animation:spinA .7s linear infinite;display:none;flex-shrink:0}
+.spin.on{display:inline-block}
+@keyframes spinA{to{transform:rotate(360deg)}}
+
+/* ERROR */
+.err{font-size:10px;color:var(--red);letter-spacing:1px;display:none;margin-top:6px}
+.err.on{display:block}
+
+/* FOOTER */
+footer{border-top:var(--border);padding:11px 22px;display:flex;justify-content:space-between;align-items:center;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#999;flex-wrap:wrap;gap:6px}
+footer a{color:var(--red);text-decoration:none}
+
+@media(max-width:480px){
+  header{grid-template-columns:1fr}
+  .header-right{border-top:var(--border);min-width:unset}
+  footer{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo">WHALE<span>·</span>PRINT</div>
+    <div class="logo-sub">ARTLOBSTAR Generative Art Engine</div>
+  </div>
+  <div class="header-right">
+    <div class="status-row">
+      <div class="dot" id="liveDot"></div>
+      <span id="liveLabel">CONNECTING...</span>
+      <div class="spin" id="spinner"></div>
+    </div>
+    <div class="status-row">
+      <div class="dot ok"></div>
+      <span>ARTLOBSTAR MAINNET</span>
+    </div>
+    <div class="status-row" style="margin-top:2px">
+      <span class="ps" id="lastUpdate">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-label">WHALE TX</div>
+  <div class="ticker-inner">
+    <div class="ticker-track" id="tickerTrack">
+      <div class="ticker-item">Monitoring ARTLOBSTAR for whale transactions — threshold <span class="amt">$50,000+</span></div>
+      <div class="ticker-item">Token: <span class="amt">AVF9F4C4…hUpump</span> — Powered by Helius RPC</div>
+      <div class="ticker-item">Only whale moves trigger generative art on ARTLOBSTAR</div>
+      <div class="ticker-item">Monitoring ARTLOBSTAR for whale transactions — threshold <span class="amt">$50,000+</span></div>
+      <div class="ticker-item">Token: <span class="amt">AVF9F4C4…hUpump</span> — Powered by Helius RPC</div>
+      <div class="ticker-item">Only whale moves trigger generative art on ARTLOBSTAR</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <!-- LEFT -->
+  <div class="canvas-zone">
+
+    <div class="zone-header">
+      <div>
+        <div class="section-label">// GENERATIVE OUTPUT</div>
+        <div class="zone-title" id="artTitle">ARTLOBSTAR GALLERY</div>
+      </div>
+      <div class="tx-meta" id="txMeta">4 ARTS PRELOADED</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" id="tabGallery" onclick="switchTab('gallery')">GALLERY ×4</button>
+      <button class="tab" id="tabSingle" onclick="switchTab('single')">DETAIL VIEW</button>
+    </div>
+
+    <!-- GALLERY VIEW -->
+    <div class="gallery" id="galleryView">
+      <div class="g-item" id="gi0" onclick="selectItem(0)">
+        <canvas id="gc0" width="400" height="400"></canvas>
+        <div class="g-badge"><span id="gl0">LATTICE</span><span class="gb-amt" id="ga0">DEMO</span></div>
+      </div>
+      <div class="g-item" id="gi1" onclick="selectItem(1)">
+        <canvas id="gc1" width="400" height="400"></canvas>
+        <div class="g-badge"><span id="gl1">FLOW</span><span class="gb-amt" id="ga1">DEMO</span></div>
+      </div>
+      <div class="g-item" id="gi2" onclick="selectItem(2)">
+        <canvas id="gc2" width="400" height="400"></canvas>
+        <div class="g-badge"><span id="gl2">FRACTAL</span><span class="gb-amt" id="ga2">DEMO</span></div>
+      </div>
+      <div class="g-item" id="gi3" onclick="selectItem(3)">
+        <canvas id="gc3" width="400" height="400"></canvas>
+        <div class="g-badge"><span id="gl3">MOSAIC</span><span class="gb-amt" id="ga3">DEMO</span></div>
+      </div>
+    </div>
+
+    <!-- SINGLE VIEW -->
+    <div class="art-frame" id="singleView">
+      <canvas id="artCanvas" width="800" height="800"></canvas>
+      <div class="art-overlay" id="artOverlay">
+        <div class="ov-icon">🐋</div>
+        <div class="ov-text">Click a gallery item<br/>to view in detail</div>
+      </div>
+    </div>
+
+    <!-- INFO STRIP -->
+    <div class="info-strip">
+      <div class="ic"><div class="k">SIGNATURE</div><div class="v" id="iSig">—</div></div>
+      <div class="ic"><div class="k">AMOUNT</div><div class="v" id="iAmt">—</div></div>
+      <div class="ic"><div class="k">SLOT</div><div class="v" id="iSlot">—</div></div>
+      <div class="ic"><div class="k">STYLE</div><div class="v" id="iStyle">—</div></div>
+    </div>
+
+    <!-- STYLE CHIPS -->
+    <div>
+      <div class="section-label" style="margin-bottom:6px">// STYLE OVERRIDE</div>
+      <div class="cfg-row">
+        <div class="chip active" data-s="auto">AUTO</div>
+        <div class="chip" data-s="lattice">LATTICE</div>
+        <div class="chip" data-s="flow">FLOW</div>
+        <div class="chip" data-s="fractal">FRACTAL</div>
+        <div class="chip" data-s="mosaic">MOSAIC</div>
+        <div class="chip" data-s="wave">WAVE</div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="btn-row">
+      <button class="btn" id="dlBtn" disabled>↓ DOWNLOAD PNG</button>
+      <button class="btn out" id="rgBtn" disabled>↺ REGENERATE</button>
+      <a class="btn out" id="exBtn" href="#" target="_blank" rel="noopener">↗ EXPLORER</a>
+    </div>
+    <div class="err" id="errMsg">⚠ RPC ERROR — RETRYING WITH FALLBACK...</div>
+
+  </div>
+
+  <!-- RIGHT: SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="sb">
+      <h3>// TOKEN</h3>
+      <div class="token-chip">
+        <div class="token-icon">W</div>
+        <div>
+          <div class="td-name">ARTLOBSTAR</div>
+          <div class="td-addr">AVF9F4C4j8b1Kh4BmNHqybDaHgnZpJ7W7yLvL7hUpump</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb">
+      <h3>// STATISTICS</h3>
+      <div class="stats-grid">
+        <div class="sc"><div class="sk">WHALES CAUGHT</div><div class="sv red" id="sW">0</div></div>
+        <div class="sc"><div class="sk">ARTS GENERATED</div><div class="sv" id="sA">4</div></div>
+        <div class="sc"><div class="sk">TX SCANNED</div><div class="sv" id="sT">0</div></div>
+        <div class="sc"><div class="sk">THRESHOLD</div><div class="sv">$50K</div></div>
+      </div>
+      <div class="refresh-row">
+        <button class="ref-btn" id="refBtn">↺ POLL NOW</button>
+        <span class="ps" id="pollSt">READY</span>
+      </div>
+    </div>
+
+    <div class="sb" style="flex:1">
+      <h3>// WHALE FEED</h3>
+      <div class="feed" id="feed">
+        <div class="feed-empty">Polling ARTLOBSTAR...<br/>Whale arts appear here<br/>when tx &gt; $50K detected.</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <span>WHALE·PRINT © 2025 — ARTLOBSTAR</span>
+  <span>TOKEN: <a href="https://solscan.io/token/AVF9F4C4j8b1Kh4BmNHqybDaHgnZpJ7W7yLvL7hUpump" target="_blank" rel="noopener">AVF9…pump</a></span>
+  <span>POWERED BY HELIUS RPC</span>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════ */
+var HELIUS_KEY  = '238cbe00-23af-44d1-9638-6428a352a343';
+var TOKEN_ADDR  = 'AVF9F4C4j8b1Kh4BmNHqybDaHgnZpJ7W7yLvL7hUpump';
+var WHALE_USD   = 50000;
+var POLL_MS     = 15000;
+var MAX_FEED    = 40;
+
+var RPCS = [
+  'https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY,
+  'https://api.mainnet-beta.solana.com',
+  'https://rpc.ankr.com/solana'
+];
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+var STATE = {
+  rpcIdx:       0,
+  seenSigs:     {},
+  whaleTxs:     [],
+  galleryTxs:   [null,null,null,null],
+  stats:        { w:0, a:4, t:0 },
+  currentTx:    null,
+  tokenPrice:   null,
+  style:        'auto',
+  pollTimer:    null,
+  busy:         false,
+  activeGIdx:   0,
+  activeTab:    'gallery'
+};
+
+var SEEDS  = [0xDEADBEEF, 0xC0FFEE42, 0xBADC0DE1, 0xFEEDFACE];
+var STYLES = ['lattice','flow','fractal','mosaic'];
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function G(id){ return document.getElementById(id); }
+
+function hashStr(s){
+  var h=0x811c9dc5;
+  for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  return h;
+}
+
+function mkRng(seed){
+  var s=seed>>>0;
+  return function(){ s=(Math.imul(1664525,s)+1013904223)>>>0; return s/0xFFFFFFFF; };
+}
+
+function autoStyle(seed){ return STYLES[seed%STYLES.length]; }
+
+function fmtUSD(v){ return '$'+Math.round(v).toLocaleString(); }
+
+/* ═══════════════════════════════════════
+   RPC
+═══════════════════════════════════════ */
+async function rpcCall(method, params){
+  params = params || [];
+  var ep = RPCS[STATE.rpcIdx % RPCS.length];
+  var r  = await fetch(ep, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({jsonrpc:'2.0',id:1,method:method,params:params})
+  });
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  var d = await r.json();
+  if(d.error) throw new Error(d.error.message||'RPC error');
+  return d.result;
+}
+
+/* ═══════════════════════════════════════
+   PRICE
+═══════════════════════════════════════ */
+async function fetchPrice(){
+  try{
+    var r=await fetch('https://price.jup.ag/v6/price?ids='+TOKEN_ADDR);
+    var d=await r.json();
+    var p=d&&d.data&&d.data[TOKEN_ADDR]&&d.data[TOKEN_ADDR].price;
+    if(p&&p>0){ STATE.tokenPrice=p; return; }
+  }catch(e){}
+  try{
+    var r2=await fetch('https://api.dexscreener.com/latest/dex/tokens/'+TOKEN_ADDR);
+    var d2=await r2.json();
+    var pair=d2&&d2.pairs&&d2.pairs[0];
+    if(pair&&pair.priceUsd) STATE.tokenPrice=parseFloat(pair.priceUsd);
+  }catch(e){}
+}
+
+/* ═══════════════════════════════════════
+   EXTRACT USD FROM TX
+═══════════════════════════════════════ */
+function extractUSD(tx){
+  if(!tx||!tx.meta||!STATE.tokenPrice) return -1;
+  var pre  = tx.meta.preTokenBalances  || [];
+  var post = tx.meta.postTokenBalances || [];
+  var moved = 0;
+  for(var i=0;i<post.length;i++){
+    var p = post[i];
+    if(p.mint!==TOKEN_ADDR) continue;
+    var b = null;
+    for(var j=0;j<pre.length;j++){
+      if(pre[j].accountIndex===p.accountIndex && pre[j].mint===TOKEN_ADDR){ b=pre[j]; break; }
+    }
+    var preA  = b ? parseFloat((b.uiTokenAmount&&b.uiTokenAmount.uiAmount)||0) : 0;
+    var postA = parseFloat((p.uiTokenAmount&&p.uiTokenAmount.uiAmount)||0);
+    moved += Math.abs(postA - preA);
+  }
+  if(moved===0) return -1;
+  return moved * STATE.tokenPrice;
+}
+
+/* ═══════════════════════════════════════
+   POLL
+═══════════════════════════════════════ */
+async function poll(){
+  if(STATE.busy) return;
+  STATE.busy = true;
+  setLive(true);
+  spinOn(true);
+  G('pollSt').textContent='POLLING...';
+  G('errMsg').classList.remove('on');
+
+  try{
+    var sigs = await rpcCall('getSignaturesForAddress',[TOKEN_ADDR,{limit:30,commitment:'confirmed'}]);
+    if(!sigs||!sigs.length) throw new Error('No signatures returned');
+
+    var fresh = [];
+    for(var i=0;i<sigs.length;i++){
+      var sig=sigs[i].signature;
+      if(!STATE.seenSigs[sig]){ STATE.seenSigs[sig]=1; fresh.push(sigs[i]); }
+    }
+    STATE.stats.t += fresh.length;
+    updateStats();
+
+    var batch = fresh.slice(0,10);
+    var promises = batch.map(function(s){
+      return rpcCall('getTransaction',[s.signature,{encoding:'jsonParsed',maxSupportedTransactionVersion:0}])
+        .then(function(tx){ return {sig:s.signature,tx:tx,slot:s.slot}; })
+        .catch(function(){ return null; });
+    });
+    var results = await Promise.all(promises);
+
+    var newWhales = [];
+    for(var k=0;k<results.length;k++){
+      var r=results[k];
+      if(!r||!r.tx) continue;
+      var usd=extractUSD(r.tx);
+      if(usd<WHALE_USD) continue;
+      var seed=hashStr(r.sig);
+      var style=STATE.style==='auto'?autoStyle(seed):STATE.style;
+      var wt={sig:r.sig,short:r.sig.slice(0,8)+'…'+r.sig.slice(-5),usd:usd,slot:r.slot,seed:seed,style:style,ts:Date.now()};
+      STATE.stats.w++;
+      STATE.stats.a++;
+      STATE.whaleTxs.unshift(wt);
+      newWhales.push(wt);
+    }
+
+    updateStats();
+    updateFeed();
+    updateTicker();
+
+    // Fill gallery slots with new whale TXs
+    for(var n=0;n<Math.min(newWhales.length,4);n++){
+      STATE.galleryTxs[n]=newWhales[n];
+      paintGallerySlot(n,newWhales[n]);
+    }
+
+    G('lastUpdate').textContent='LAST: '+new Date().toLocaleTimeString();
+    G('pollSt').textContent='OK '+new Date().toLocaleTimeString();
+    setLive(true);
+
+  }catch(e){
+    console.warn('Poll error:',e.message);
+    STATE.rpcIdx++;
+    G('errMsg').classList.add('on');
+    G('pollSt').textContent='ERROR — RETRY';
+    setLive(false);
+  }
+
+  STATE.busy=false;
+  spinOn(false);
+}
+
+/* ═══════════════════════════════════════
+   ART ENGINE
+═══════════════════════════════════════ */
+var PAL={bg:'#f4f1ee',black:'#0a0a0a',red:'#8B2E1E',grays:['#1a1a1a','#2e2e2e','#444','#666','#888','#aaa','#ccc','#dedad5']};
+
+function paintArt(canvas, seed, style, W, H){
+  W=W||400; H=H||400;
+  canvas.width=W; canvas.height=H;
+  var ctx=canvas.getContext('2d');
+  var rng=mkRng(seed);
+  ctx.fillStyle=PAL.bg;
+  ctx.fillRect(0,0,W,H);
+  if(style==='lattice')   drawLattice(ctx,rng,W,H);
+  else if(style==='flow')    drawFlow(ctx,rng,W,H);
+  else if(style==='fractal') drawFractal(ctx,rng,W,H);
+  else if(style==='mosaic')  drawMosaic(ctx,rng,W,H);
+  else if(style==='wave')    drawWave(ctx,rng,W,H);
+  else                       drawLattice(ctx,rng,W,H);
+}
+
+function drawLattice(ctx,rng,W,H){
+  var n=Math.floor(rng()*8)+10, cell=W/n;
+  for(var layer=0;layer<Math.floor(rng()*3)+2;layer++){
+    var off=rng()*30-15;
+    for(var y=0;y<=n;y++){
+      for(var x=0;x<=n;x++){
+        var px=x*cell+off, py=y*cell+off, v=rng(), sz=v*cell*0.85, alpha=0.1+rng()*0.6;
+        var isRed=v>0.85;
+        ctx.beginPath();
+        if(v>0.7) ctx.arc(px,py,sz/2,0,Math.PI*2);
+        else if(v>0.4) ctx.rect(px-sz/2,py-sz/2,sz,sz);
+        else{ ctx.moveTo(px-sz/2,py);ctx.lineTo(px+sz/2,py);ctx.moveTo(px,py-sz/2);ctx.lineTo(px,py+sz/2); }
+        ctx.strokeStyle=isRed?'rgba(139,46,30,'+alpha+')':(PAL.grays[Math.floor(rng()*PAL.grays.length)]+Math.round(alpha*255).toString(16).padStart(2,'0'));
+        ctx.lineWidth=0.8+rng()*1.5;
+        ctx.stroke();
+        if(v>0.7){ ctx.fillStyle=isRed?'rgba(139,46,30,'+(alpha*0.4)+')':'transparent';ctx.fill(); }
+      }
+    }
+  }
+  ctx.strokeStyle='rgba(10,10,10,0.05)';ctx.lineWidth=0.5;
+  for(var i=0;i<=n;i++){
+    ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(W,i*cell);ctx.stroke();
+  }
+}
+
+function drawFlow(ctx,rng,W,H){
+  var num=120+Math.floor(rng()*200), freq=rng()*0.012+0.004, amp=60+rng()*120, twist=rng()*Math.PI*2;
+  for(var i=0;i<num;i++){
+    var sx=rng()*W, sy=rng()*H, isRed=i%Math.floor(rng()*12+5)===0, alpha=0.06+rng()*0.35;
+    var g=Math.floor(rng()*80+20);
+    ctx.strokeStyle=isRed?'rgba(139,46,30,'+(alpha+0.1)+')':'rgba('+g+','+g+','+g+','+alpha+')';
+    ctx.lineWidth=0.4+rng()*1.8;
+    ctx.beginPath();ctx.moveTo(sx,sy);
+    var x=sx,y=sy;
+    for(var s=0;s<120;s++){
+      var angle=Math.sin(x*freq+twist)*Math.cos(y*freq)*amp+twist;
+      x+=Math.cos(angle)*3;y+=Math.sin(angle)*3;
+      ctx.lineTo(x,y);
+      if(x<-10||x>W+10||y<-10||y>H+10) break;
+    }
+    ctx.stroke();
+  }
+}
+
+function drawFractal(ctx,rng,W,H){
+  function br(x,y,angle,len,depth){
+    if(depth===0||len<1.5) return;
+    var ex=x+Math.cos(angle)*len, ey=y+Math.sin(angle)*len;
+    var alpha=Math.min(0.9,depth*0.12+0.1);
+    ctx.strokeStyle=depth<=2?'rgba(139,46,30,'+alpha+')':'rgba(10,10,10,'+(alpha*0.7)+')';
+    ctx.lineWidth=Math.max(0.3,depth*0.4);
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ex,ey);ctx.stroke();
+    var spread=0.3+rng()*0.5, brs=depth>3?3:2;
+    for(var b=0;b<brs;b++){
+      var da=(b/(brs-1)-0.5)*Math.PI*spread;
+      br(ex,ey,angle+da,len*(0.6+rng()*0.2),depth-1);
+    }
+  }
+  var roots=2+Math.floor(rng()*3);
+  for(var r=0;r<roots;r++){
+    br(W*(r+1)/(roots+1), H*(0.6+rng()*0.3), -Math.PI/2+(rng()-0.5)*0.5, 80+rng()*60, 9);
+  }
+}
+
+function drawMosaic(ctx,rng,W,H){
+  var cols=Math.floor(rng()*10)+8, cw=W/cols, ch=H/cols;
+  for(var r=0;r<cols;r++){
+    for(var c=0;c<cols;c++){
+      var v=rng(), x=c*cw, y=r*ch;
+      var dist=Math.hypot(c-cols/2,r-cols/2)/(cols*0.7);
+      var alpha=Math.max(0.05,0.9-dist+rng()*0.2);
+      var fill;
+      if(v>0.9)      fill='rgba(139,46,30,'+alpha+')';
+      else if(v>0.6) fill=PAL.grays[Math.floor(rng()*PAL.grays.length)]+Math.round(alpha*255).toString(16).padStart(2,'0');
+      else if(v>0.3) fill='rgba(10,10,10,'+(alpha*0.3)+')';
+      else           fill='transparent';
+      ctx.fillStyle=fill;
+      var sh=Math.floor(rng()*3);
+      if(sh===0) ctx.fillRect(x+1,y+1,cw-2,ch-2);
+      else if(sh===1){ ctx.beginPath();ctx.arc(x+cw/2,y+ch/2,Math.min(cw,ch)/2-1,0,Math.PI*2);ctx.fill(); }
+      else{ ctx.beginPath();ctx.moveTo(x+cw/2,y+1);ctx.lineTo(x+cw-1,y+ch-1);ctx.lineTo(x+1,y+ch-1);ctx.closePath();ctx.fill(); }
+      ctx.strokeStyle='rgba(10,10,10,0.04)';ctx.lineWidth=0.5;ctx.strokeRect(x,y,cw,ch);
+    }
+  }
+}
+
+function drawWave(ctx,rng,W,H){
+  var num=30+Math.floor(rng()*40), bf=rng()*0.015+0.005, phase=rng()*Math.PI*2;
+  for(var i=0;i<num;i++){
+    var y0=(i/num)*H, freq=bf*(1+rng()*2), amp=20+rng()*80, ph2=phase+rng()*Math.PI;
+    var isRed=i%Math.floor(rng()*8+4)===0, alpha=0.08+rng()*0.4;
+    ctx.strokeStyle=isRed?'rgba(139,46,30,'+(alpha+0.1)+')':'rgba(10,10,10,'+alpha+')';
+    ctx.lineWidth=0.5+rng()*2;
+    ctx.beginPath();ctx.moveTo(0,y0);
+    for(var x=0;x<=W;x+=2){
+      ctx.lineTo(x, y0+Math.sin(x*freq+ph2)*amp+Math.sin(x*freq*2.3+ph2*1.7)*amp*0.3);
+    }
+    ctx.stroke();
+  }
+  var cuts=3+Math.floor(rng()*5);
+  for(var c=0;c<cuts;c++){
+    var cx=rng()*W;
+    ctx.strokeStyle='rgba(139,46,30,'+(0.15+rng()*0.25)+')';
+    ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx+(rng()-0.5)*40,H);ctx.stroke();
+  }
+}
+
+/* ═══════════════════════════════════════
+   GALLERY
+═══════════════════════════════════════ */
+function paintGallerySlot(idx,txObj){
+  var c=G('gc'+idx);
+  var style=txObj.style||STYLES[idx];
+  paintArt(c,txObj.seed,style,400,400);
+  G('gl'+idx).textContent=style.toUpperCase();
+  G('ga'+idx).textContent=txObj.usd?fmtUSD(txObj.usd):'DEMO';
+}
+
+function initGallery(){
+  for(var i=0;i<4;i++){
+    var s=STATE.style==='auto'?STYLES[i]:STATE.style;
+    var tx={seed:SEEDS[i],style:s,usd:0,sig:'',slot:0,ts:Date.now()};
+    STATE.galleryTxs[i]=tx;
+    paintGallerySlot(i,tx);
+  }
+}
+
+function selectItem(idx){
+  for(var i=0;i<4;i++) G('gi'+i).classList.remove('sel-art');
+  G('gi'+idx).classList.add('sel-art');
+  STATE.activeGIdx=idx;
+  var tx=STATE.galleryTxs[idx];
+  if(!tx) return;
+  STATE.currentTx=tx;
+  switchTab('single');
+  paintSingle(tx);
+}
+
+function paintSingle(tx){
+  var style=STATE.style==='auto'?(tx.style||STYLES[0]):STATE.style;
+  paintArt(G('artCanvas'),tx.seed,style,800,800);
+  G('artOverlay').classList.add('hidden');
+  G('iSig').textContent   = tx.sig ? tx.sig.slice(0,14)+'…' : 'DEMO';
+  G('iAmt').textContent   = tx.usd ? fmtUSD(tx.usd) : 'PREVIEW';
+  G('iSlot').textContent  = tx.slot ? '#'+tx.slot : '—';
+  G('iStyle').textContent = style.toUpperCase();
+  G('artTitle').textContent = tx.sig ? 'TX·'+tx.sig.slice(0,8)+'…' : 'ARTLOBSTAR';
+  G('txMeta').textContent   = style.toUpperCase()+' — '+new Date(tx.ts||Date.now()).toLocaleTimeString();
+  G('dlBtn').disabled  = false;
+  G('rgBtn').disabled  = false;
+  G('exBtn').href = tx.sig ? 'https://solscan.io/tx/'+tx.sig : '#';
+}
+
+/* ═══════════════════════════════════════
+   TAB SWITCH
+═══════════════════════════════════════ */
+function switchTab(tab){
+  STATE.activeTab=tab;
+  G('tabGallery').classList.toggle('active',tab==='gallery');
+  G('tabSingle').classList.toggle('active',tab==='single');
+  G('galleryView').style.display=tab==='gallery'?'grid':'none';
+  G('singleView').classList.toggle('show',tab==='single');
+  if(tab==='gallery'){ G('artTitle').textContent='ARTLOBSTAR GALLERY'; G('txMeta').textContent='4 ARTS LOADED'; }
+}
+
+/* ═══════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════ */
+function setLive(on){ G('liveDot').classList.toggle('live',on); G('liveLabel').textContent=on?'LIVE':'OFFLINE'; }
+function spinOn(on){ G('spinner').classList.toggle('on',on); }
+function updateStats(){ G('sW').textContent=STATE.stats.w; G('sA').textContent=STATE.stats.a; G('sT').textContent=STATE.stats.t; }
+
+function updateFeed(){
+  var feed=G('feed');
+  if(!STATE.whaleTxs.length) return;
+  feed.innerHTML='';
+  STATE.whaleTxs.slice(0,MAX_FEED).forEach(function(tx){
+    var d=document.createElement('div');
+    d.className='fi whale'+(STATE.currentTx&&STATE.currentTx.sig===tx.sig?' sel':'');
+    d.innerHTML='<div class="fi-top"><div class="fi-hash">'+tx.short+'</div><div class="fi-badge">$'+Math.round(tx.usd/1000)+'K</div></div><div class="fi-sig">'+tx.sig+'</div>';
+    d.onclick=function(){
+      feed.querySelectorAll('.fi').forEach(function(f){f.classList.remove('sel');});
+      d.classList.add('sel');
+      STATE.currentTx=tx;
+      STATE.galleryTxs[0]=tx;
+      paintGallerySlot(0,tx);
+      paintSingle(tx);
+      switchTab('single');
+    };
+    feed.appendChild(d);
+  });
+}
+
+function updateTicker(){
+  if(!STATE.whaleTxs.length) return;
+  var items=STATE.whaleTxs.slice(0,6).map(function(tx){
+    return '<div class="ticker-item">🐋 '+tx.short+' — <span class="amt">'+fmtUSD(tx.usd)+'</span></div>';
+  }).join('');
+  G('tickerTrack').innerHTML=items+items;
+}
+
+/* ═══════════════════════════════════════
+   EVENT LISTENERS
+═══════════════════════════════════════ */
+G('dlBtn').addEventListener('click',function(){
+  var c=STATE.activeTab==='gallery'?G('gc'+STATE.activeGIdx):G('artCanvas');
+  var a=document.createElement('a');
+  a.download='artlobstar-'+(STATE.currentTx&&STATE.currentTx.sig?STATE.currentTx.sig.slice(0,12):'demo')+'.png';
+  a.href=c.toDataURL('image/png');
+  a.click();
+});
+
+G('rgBtn').addEventListener('click',function(){
+  if(!STATE.currentTx) return;
+  STATE.currentTx.seed=hashStr((STATE.currentTx.sig||'demo')+Date.now());
+  STATE.currentTx.style=STATE.style==='auto'?autoStyle(STATE.currentTx.seed):STATE.style;
+  paintSingle(STATE.currentTx);
+  paintGallerySlot(STATE.activeGIdx,STATE.currentTx);
+});
+
+document.querySelectorAll('.chip').forEach(function(c){
+  c.addEventListener('click',function(){
+    document.querySelectorAll('.chip').forEach(function(x){x.classList.remove('active');});
+    c.classList.add('active');
+    STATE.style=c.getAttribute('data-s');
+    for(var i=0;i<4;i++){
+      var tx=STATE.galleryTxs[i];
+      if(tx){ tx.style=STATE.style==='auto'?autoStyle(tx.seed):STATE.style; paintGallerySlot(i,tx); }
+    }
+    if(STATE.currentTx) paintSingle(STATE.currentTx);
+  });
+});
+
+G('refBtn').addEventListener('click',function(){
+  clearTimeout(STATE.pollTimer);
+  poll().then(schedulePoll);
+});
+
+/* ═══════════════════════════════════════
+   POLL LOOP
+═══════════════════════════════════════ */
+function schedulePoll(){
+  STATE.pollTimer=setTimeout(function(){ poll().then(schedulePoll); },POLL_MS);
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+async function init(){
+  switchTab('gallery');
+  setLive(false);
+  spinOn(false);
+  initGallery();
+  await fetchPrice();
+  await poll();
+  schedulePoll();
+}
+
+init();
+</script>
+</body>
+</html>
